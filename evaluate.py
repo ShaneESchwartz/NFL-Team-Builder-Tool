@@ -67,4 +67,19 @@ def evaluate_team_strict(
     result["draft_ev_ratio"] = draft_pos_ratio.reindex(result.index)
     result["draft_recommendation"] = result["draft_ev_ratio"].apply(draft_recommendation)
 
-    return result.sort_values(by="delta", ascending=False)
+    # return result.sort_values(by="delta", ascending=False)
+    # enforce custom football position order
+    position_order = [
+        "QB", "RB", "TE", "WR", "OL",
+        "OLB", "LB", "DL", "DB", "ST"
+    ]
+
+    result["position_order"] = pd.Categorical(
+        result.index,
+        categories=position_order,
+        ordered=True
+    )
+
+    result = result.sort_values("position_order")
+
+    return result.drop(columns="position_order")

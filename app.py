@@ -165,16 +165,30 @@ tk.Button(root, text="Evaluate Team", command=run_evaluation).pack(pady=10)
 # -----------------------
 # OUTPUT TABLE (Treeview)
 # -----------------------
+
 columns = ["Position", "Input AV", "Playoff", "Delta", "Delta %", "EV Ratio", "Recommendation"]
 
 tree = ttk.Treeview(root, columns=columns, show="headings")
 tree.pack(fill="both", expand=True)
 
+# for col in columns:
+#     tree.heading(col, text=col)
+#     tree.column(col, anchor="center", stretch=True)
+
+# tree.column("Recommendation", width=500, anchor="w")
 for col in columns:
     tree.heading(col, text=col)
-    tree.column(col, anchor="center", stretch=True)
 
-tree.column("Recommendation", width=500, anchor="w")
+# fixed widths (clean layout)
+tree.column("Position", width=70, anchor="center", stretch=False)
+tree.column("Input AV", width=80, anchor="center", stretch=False)
+tree.column("Playoff", width=80, anchor="center", stretch=False)
+tree.column("Delta", width=80, anchor="center", stretch=False)
+tree.column("Delta %", width=80, anchor="center", stretch=False)
+tree.column("EV Ratio", width=80, anchor="center", stretch=False)
+
+# ONLY this column expands
+tree.column("Recommendation", width=450, anchor="w", stretch=True)
 
 
 # -----------------------
