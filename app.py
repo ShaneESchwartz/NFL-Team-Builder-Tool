@@ -4,12 +4,12 @@ import pandas as pd
 
 from evaluate import evaluate_team_strict
 
-
 # -----------------------
 # LOAD DATA (same directory)
 # -----------------------
 av_team_strict = pd.read_pickle("av_team_strict.pkl")
 playoff_means_strict = pd.read_pickle("playoff_means_strict.pkl")
+draft_pos_ratio = pd.read_pickle("draft_pos_ev_ratio.pkl").squeeze()
 
 
 # -----------------------
@@ -57,12 +57,47 @@ def run_evaluation():
                 manual_input=manual_input
             )
 
-        output.delete("1.0", tk.END)
-        output.insert(tk.END, result.to_string())
+        # clear old rows
+        for row in tree.get_children():
+            tree.delete(row)
+
+        # add EV ratio + recommendation
+        result["draft_ev_ratio"] = draft_pos_ratio.reindex(result.index)
+        result["draft_recommendation"] = result["draft_ev_ratio"].apply(draft_recommendation)
+
+        # insert rows into table
+        for idx, row in result.iterrows():
+            tree.insert("", "end", values=[
+                idx,
+                round(row["input_av"], 2),
+                round(row["playoff_baseline"], 2),
+                round(row["delta"], 2),
+                round(row["delta_pct"], 2),
+                round(row["draft_ev_ratio"], 2) if pd.notna(row["draft_ev_ratio"]) else "",
+                row["draft_recommendation"]
+            ])
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
+
+def draft_recommendation(ratio):
+    if pd.isna(ratio):
+        return "No data"
+
+    if ratio <= 0.6:
+        return "Extremely hard to draft (on average underperforms vs expectation by 40%+)"
+    elif 0.6 < ratio <= .9:
+        return "Somewhat Hard to draft (on average underperforms vs expectation by 10-40%)"
+
+    elif 0.9 < ratio <= 1.1:
+        return "Drafting is about average at this position (on average performs within 10% of expectiation)"
+
+    elif  1.1 < ratio <= 1.4:
+        return "Strong draft value (on average outperforms expectation by 10-40%)"
+
+    elif ratio > 1.4:
+        return "Extremely strong draft value (on average outperforms expectation by 40%+)"
 
 # -----------------------
 # GUI SETUP
@@ -84,7 +119,7 @@ mode_dropdown.pack()
 # -----------------------
 # TEAM DROPDOWN
 # -----------------------
-teams = sorted(av_team_strict["team"].unique())
+teams = sorted(av_team_strict["nfl"].unique())
 team_var = tk.StringVar()
 
 tk.Label(root, text="Select Team").pack()
@@ -127,12 +162,19 @@ for i, pos in enumerate(pos_cols):
 # -----------------------
 tk.Button(root, text="Evaluate Team", command=run_evaluation).pack(pady=10)
 
+# -----------------------
+# OUTPUT TABLE (Treeview)
+# -----------------------
+columns = ["Position", "Input AV", "Playoff", "Delta", "Delta %", "EV Ratio", "Recommendation"]
 
-# -----------------------
-# OUTPUT BOX
-# -----------------------
-output = tk.Text(root, height=25, width=80)
-output.pack()
+tree = ttk.Treeview(root, columns=columns, show="headings")
+tree.pack(fill="both", expand=True)
+
+for col in columns:
+    tree.heading(col, text=col)
+    tree.column(col, anchor="center", stretch=True)
+
+tree.column("Recommendation", width=500, anchor="w")
 
 
 # -----------------------
